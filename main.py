@@ -216,16 +216,37 @@ if st.session_state.token_passed:
         
             ##########
             # Bar plot
-            avg_temp_by_season = filtered_df.groupby(['city', 'season'])['temperature'].mean().reset_index()
+            avg_temp_by_season = filtered_df.groupby(['city', 'season']).agg(
+                mean_temperature=('temperature', 'mean'),
+                std=('temperature', 'std')
+            ).reset_index()
+            
+            season_order = ['spring', 'summer', 'autumn', 'winter']
+
             fig3 = sns.catplot(
                 data=avg_temp_by_season,
                 x='season',
-                y='temperature',
+                y='mean_temperature',
                 hue='city',
                 col='city',
                 col_wrap=2,
-                kind='bar'
+                kind='bar',
+                order=season_order
             )
+
+            for ax, city in zip(fig3.axes.flat, avg_temp_by_season['city'].unique()):
+                city_data = avg_temp_by_season[avg_temp_by_season['city'] == city]
+                city_data = city_data.set_index('season').loc[season_order].reset_index()
+                lower_error = city_data['std'] * 2
+                upper_error = city_data['std'] * 2
+                ax.errorbar(
+                    x=range(len(city_data['season'])),
+                    y=city_data['mean_temperature'], 
+                    yerr=[lower_error, upper_error],
+                    fmt='none', 
+                    ecolor='black', 
+                    capsize=3
+                )
 
             fig3.figure.suptitle('Average temperature in different seasons', y=1.05, fontsize=16)
 
